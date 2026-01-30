@@ -467,5 +467,119 @@ def update_settings():
     
     return jsonify({'success': True})
 
+# ============================================
+# READING DETAILS AND MANAGEMENT API
+# ============================================
+
+@app.route('/api/reading_details')
+def reading_details():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    reading_type = request.args.get('type')
+    reading_id = request.args.get('id')
+    
+    if not reading_type or not reading_id:
+        return jsonify({'error': 'Missing parameters'}), 400
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        if reading_type == 'quality':
+            cursor.execute('''
+                SELECT * FROM quality_readings 
+                WHERE id = ? AND user_id = ?
+            ''', (reading_id, session['user_id']))
+        elif reading_type == 'meter':
+            cursor.execute('''
+                SELECT * FROM meter_readings 
+                WHERE id = ? AND user_id = ?
+            ''', (reading_id, session['user_id']))
+        else:
+            return jsonify({'error': 'Invalid reading type'}), 400
+        
+        reading = cursor.fetchone()
+        conn.close()
+        
+        if not reading:
+            return jsonify({'error': 'Reading not found'}), 404
+        
+        return jsonify(dict(reading))
+    except Exception as e:
+        conn.close()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/delete_reading', methods=['DELETE'])
+def delete_reading():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    reading_type = request.args.get('type')
+    reading_id = request.args.get('id')
+    
+    if not reading_type or not reading_id:
+        return jsonify({'error': 'Missing parameters'}), 400
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        # First verify the reading belongs to the user
+        if reading_type == 'quality':
+            cursor.execute('''
+                SELECT id FROM quality_readings 
+                WHERE id = ? AND user_id = ?
+            ''', (reading_id, session['user_id']))
+            
+            if cursor.fetchone():
+                # Delete associated alerts first
+                cursor.execute('''
+                    DELETE FROM alerts 
+                    WHERE related_reading_id = ? AND alert_type = 'WATER_QUALITY'
+                ''', (reading_id,))
+                
+                # Delete the reading
+                cursor.execute('''
+                    DELETE FROM quality_readings 
+                    WHERE id = ? AND user_id = ?
+                ''', (reading_id, session['user_id']))
+            else:
+                conn.close()
+                return jsonify({'error': 'Reading not found or unauthorized'}), 404
+                
+        elif reading_type == 'meter':
+            cursor.execute('''
+                SELECT id FROM meter_readings 
+                WHERE id = ? AND user_id = ?
+            ''', (reading_id, session['user_id']))
+            
+            if cursor.fetchone():
+                # Delete associated alerts first
+                cursor.execute('''
+                    DELETE FROM alerts 
+                    WHERE related_reading_id = ? AND alert_type = 'HIGH_USAGE'
+                ''', (reading_id,))
+                
+                # Delete the reading
+                cursor.execute('''
+                    DELETE FROM meter_readings 
+                    WHERE id = ? AND user_id = ?
+                ''', (reading_id, session['user_id']))
+            else:
+                conn.close()
+                return jsonify({'error': 'Reading not found or unauthorized'}), 404
+        else:
+            conn.close()
+            return jsonify({'error': 'Invalid reading type'}), 400
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Reading deleted successfully'})
+    except Exception as e:
+        conn.close()
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=9000)

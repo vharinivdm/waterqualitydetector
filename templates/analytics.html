@@ -9,10 +9,23 @@
 <div class="glass-card mb-4">
     <div class="d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Select Time Range</h5>
-        <div class="btn-group" role="group">
-            <button type="button" class="btn btn-outline-light" onclick="loadAnalytics(7)">7 Days</button>
-            <button type="button" class="btn btn-outline-light active" onclick="loadAnalytics(30)">30 Days</button>
-            <button type="button" class="btn btn-outline-light" onclick="loadAnalytics(90)">90 Days</button>
+        <div class="btn-group" role="group" id="timeRangeButtons">
+            <button type="button" class="btn btn-outline-light" data-days="1" onclick="loadAnalytics(1, this)">Today</button>
+            <button type="button" class="btn btn-outline-light" data-days="7" onclick="loadAnalytics(7, this)">7 Days</button>
+            <button type="button" class="btn btn-outline-light active" data-days="30" onclick="loadAnalytics(30, this)">30 Days</button>
+            <button type="button" class="btn btn-outline-light" data-days="90" onclick="loadAnalytics(90, this)">90 Days</button>
+        </div>
+    </div>
+</div>
+
+<!-- Daily Activity Chart -->
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="glass-card">
+            <div class="card-header-custom">
+                <h3><i class="bi bi-calendar-day"></i> <span id="trendChartTitle">Activity Trend</span></h3>
+            </div>
+            <canvas id="dailyTrendChart" height="60"></canvas>
         </div>
     </div>
 </div>
@@ -122,16 +135,32 @@
 <script>
     let charts = {};
     
-    async function loadAnalytics(days = 30) {
+    async function loadAnalytics(days = 30, button = null) {
         try {
+            // Update active button state
+            if (button) {
+                document.querySelectorAll('#timeRangeButtons button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                button.classList.add('active');
+            }
+            
             const response = await fetch(`/api/analytics_data?days=${days}`);
             const data = await response.json();
+            
+            // Update chart title based on granularity
+            const titleElement = document.getElementById('trendChartTitle');
+            if (data.granularity === 'hourly') {
+                titleElement.textContent = 'Hourly Activity Trend (Today)';
+            } else {
+                titleElement.textContent = `Daily Activity Trend (${days} Days)`;
+            }
             
             // Update statistics
             updateStatistics(data);
             
             // Create/Update charts
-            createCharts(data);
+            createCharts(data, days);
             
         } catch (error) {
             console.error('Error loading analytics:', error);
@@ -166,8 +195,145 @@
         document.getElementById('highAlerts').textContent = unsafeCount;
     }
     
-    function createCharts(data) {
-        // 1. Usage Trend Chart
+    function createCharts(data, days) {
+        // 1. Daily Trend Chart (Combined)
+        const dailyCtx = document.getElementById('dailyTrendChart').getContext('2d');
+        if (charts.dailyTrend) charts.dailyTrend.destroy();
+        
+        // Merge quality and meter data by date
+        const allDates = [...new Set([
+            ...data.quality_trend.map(d => d.date),
+            ...data.meter_trend.map(d => d.date)
+        ])].sort();
+        
+        const qualityByDate = {};
+        const meterByDate = {};
+        
+        data.quality_trend.forEach(d => qualityByDate[d.date] = d);
+        data.meter_trend.forEach(d => meterByDate[d.date] = d);
+        
+        // Format labels based on granularity
+        const formatLabel = (dateStr) => {
+            if (data.granularity === 'hourly') {
+                // Extract hour from "YYYY-MM-DD HH:00"
+                const hour = dateStr.split(' ')[1].split(':')[0];
+                return `${hour}:00`;
+            } else {
+                // Keep date as is for daily
+                return dateStr;
+            }
+        };
+        
+        charts.dailyTrend = new Chart(dailyCtx, {
+            type: 'line',
+            data: {
+                labels: allDates.map(formatLabel),
+                datasets: [{
+                    label: 'Quality Tests',
+                    data: allDates.map(date => qualityByDate[date]?.count || 0),
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    yAxisID: 'y'
+                }, {
+                    label: 'Meter Readings',
+                    data: allDates.map(date => meterByDate[date]?.count || 0),
+                    borderColor: '#764ba2',
+                    backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    yAxisID: 'y'
+                }, {
+                    label: 'Avg Safety Score',
+                    data: allDates.map(date => qualityByDate[date]?.avg_score || null),
+                    borderColor: '#00b894',
+                    backgroundColor: 'rgba(0, 184, 148, 0.1)',
+                    tension: 0.4,
+                    fill: false,
+                    yAxisID: 'y1',
+                    borderDash: [5, 5]
+                }]
+            },
+            options: {
+                responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: { 
+                        labels: { color: '#fff' }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function(context) {
+                                if (data.granularity === 'hourly') {
+                                    return `Hour: ${context[0].label}`;
+                                } else {
+                                    return `Date: ${context[0].label}`;
+                                }
+                            },
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    if (context.dataset.label === 'Avg Safety Score') {
+                                        label += Math.round(context.parsed.y);
+                                    } else {
+                                        label += context.parsed.y;
+                                    }
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { 
+                        ticks: { color: '#fff' }, 
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        title: {
+                            display: true,
+                            text: data.granularity === 'hourly' ? 'Hour of Day' : 'Date',
+                            color: '#fff'
+                        }
+                    },
+                    y: { 
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        ticks: { color: '#fff' }, 
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        title: {
+                            display: true,
+                            text: 'Activity Count',
+                            color: '#fff'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        ticks: { color: '#fff' }, 
+                        grid: { 
+                            drawOnChartArea: false,
+                        },
+                        min: 0,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Safety Score',
+                            color: '#fff'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 2. Usage Trend Chart
         const usageCtx = document.getElementById('usageTrendChart').getContext('2d');
         if (charts.usageTrend) charts.usageTrend.destroy();
         
@@ -196,7 +362,7 @@
             }
         });
         
-        // 2. Safety Pie Chart
+        // 3. Safety Pie Chart
         const safetyCtx = document.getElementById('safetyPieChart').getContext('2d');
         if (charts.safetyPie) charts.safetyPie.destroy();
         
@@ -220,7 +386,7 @@
             }
         });
         
-        // 3. Quality Trend Chart
+        // 4. Quality Trend Chart
         const qualityCtx = document.getElementById('qualityTrendChart').getContext('2d');
         if (charts.qualityTrend) charts.qualityTrend.destroy();
         
@@ -251,7 +417,7 @@
             }
         });
         
-        // 4. Frequency Chart
+        // 5. Frequency Chart
         const frequencyCtx = document.getElementById('frequencyChart').getContext('2d');
         if (charts.frequency) charts.frequency.destroy();
         

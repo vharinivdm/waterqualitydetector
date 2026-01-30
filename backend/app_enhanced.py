@@ -318,31 +318,57 @@ def analytics_data():
     conn = get_db()
     cursor = conn.cursor()
     
-    # Quality trend data
-    cursor.execute('''
-        SELECT DATE(timestamp) as date, 
-               AVG(safety_score) as avg_score,
-               COUNT(*) as count
-        FROM quality_readings 
-        WHERE user_id = ? AND timestamp >= datetime('now', ?)
-        GROUP BY DATE(timestamp)
-        ORDER BY date
-    ''', (session['user_id'], f'-{days} days'))
-    
-    quality_trend = [dict(row) for row in cursor.fetchall()]
-    
-    # Meter trend data
-    cursor.execute('''
-        SELECT DATE(timestamp) as date,
-               AVG(reading_value) as avg_usage,
-               COUNT(*) as count
-        FROM meter_readings 
-        WHERE user_id = ? AND timestamp >= datetime('now', ?)
-        GROUP BY DATE(timestamp)
-        ORDER BY date
-    ''', (session['user_id'], f'-{days} days'))
-    
-    meter_trend = [dict(row) for row in cursor.fetchall()]
+    # Determine granularity: hourly for 1 day, daily for others
+    if days == 1:
+        # Hourly data for today
+        cursor.execute('''
+            SELECT strftime('%Y-%m-%d %H:00', timestamp) as date, 
+                   AVG(safety_score) as avg_score,
+                   COUNT(*) as count
+            FROM quality_readings 
+            WHERE user_id = ? AND DATE(timestamp) = DATE('now')
+            GROUP BY strftime('%Y-%m-%d %H:00', timestamp)
+            ORDER BY date
+        ''', (session['user_id'],))
+        
+        quality_trend = [dict(row) for row in cursor.fetchall()]
+        
+        cursor.execute('''
+            SELECT strftime('%Y-%m-%d %H:00', timestamp) as date,
+                   AVG(reading_value) as avg_usage,
+                   COUNT(*) as count
+            FROM meter_readings 
+            WHERE user_id = ? AND DATE(timestamp) = DATE('now')
+            GROUP BY strftime('%Y-%m-%d %H:00', timestamp)
+            ORDER BY date
+        ''', (session['user_id'],))
+        
+        meter_trend = [dict(row) for row in cursor.fetchall()]
+    else:
+        # Daily data for 7, 30, 90 days
+        cursor.execute('''
+            SELECT DATE(timestamp) as date, 
+                   AVG(safety_score) as avg_score,
+                   COUNT(*) as count
+            FROM quality_readings 
+            WHERE user_id = ? AND timestamp >= datetime('now', ?)
+            GROUP BY DATE(timestamp)
+            ORDER BY date
+        ''', (session['user_id'], f'-{days} days'))
+        
+        quality_trend = [dict(row) for row in cursor.fetchall()]
+        
+        cursor.execute('''
+            SELECT DATE(timestamp) as date,
+                   AVG(reading_value) as avg_usage,
+                   COUNT(*) as count
+            FROM meter_readings 
+            WHERE user_id = ? AND timestamp >= datetime('now', ?)
+            GROUP BY DATE(timestamp)
+            ORDER BY date
+        ''', (session['user_id'], f'-{days} days'))
+        
+        meter_trend = [dict(row) for row in cursor.fetchall()]
     
     # Safety status distribution
     cursor.execute('''
@@ -359,7 +385,8 @@ def analytics_data():
     return jsonify({
         'quality_trend': quality_trend,
         'meter_trend': meter_trend,
-        'safety_distribution': safety_distribution
+        'safety_distribution': safety_distribution,
+        'granularity': 'hourly' if days == 1 else 'daily'
     })
 
 @app.route('/api/export_report')

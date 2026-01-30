@@ -5,6 +5,9 @@
 [![Flask](https://img.shields.io/badge/Flask-3.0-green.svg)](https://flask.palletsprojects.com/)
 [![Machine Learning](https://img.shields.io/badge/ML-Random%20Forest-orange.svg)](https://scikit-learn.org/)
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-success.svg)]()
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-black.svg)](https://github.com/vharinivdm/waterqualitydetector)
+
+**🌐 GitHub Repository:** [https://github.com/vharinivdm/waterqualitydetector](https://github.com/vharinivdm/waterqualitydetector)
 
 ---
 

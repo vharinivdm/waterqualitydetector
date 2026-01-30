@@ -139,6 +139,13 @@ def settings_page():
     
     return render_template('settings.html', user=session, settings=settings, stats=stats)
 
+@app.route('/documentation')
+def documentation_page():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    return render_template('documentation.html', user=session)
+
 # ============================================
 # API ENDPOINTS
 # ============================================

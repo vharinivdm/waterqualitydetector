@@ -1,0 +1,739 @@
+{% extends "base.html" %}
+
+{% block title %}Documentation - AquaGuard AI{% endblock %}
+{% block page_title %}System Documentation{% endblock %}
+
+{% block extra_css %}
+<style>
+    .doc-section {
+        margin-bottom: 3rem;
+    }
+
+    .doc-section h3 {
+        border-left: 4px solid #00a8e8;
+        padding-left: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .architecture-diagram {
+        background: rgba(255, 255, 255, 0.03);
+        padding: 2rem;
+        border-radius: 15px;
+        margin: 2rem 0;
+        overflow-x: auto;
+    }
+
+    .diagram-box {
+        background: linear-gradient(135deg, rgba(0, 168, 232, 0.2), rgba(0, 102, 204, 0.2));
+        border: 2px solid rgba(0, 168, 232, 0.5);
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin: 1rem;
+        text-align: center;
+        min-width: 150px;
+        transition: all 0.3s;
+    }
+
+    .diagram-box:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 168, 232, 0.3);
+    }
+
+    .diagram-arrow {
+        font-size: 2rem;
+        color: #00a8e8;
+        margin: 0 1rem;
+    }
+
+    .tech-badge {
+        display: inline-block;
+        background: rgba(0, 168, 232, 0.2);
+        border: 1px solid #00a8e8;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        margin: 0.3rem;
+        font-size: 0.9rem;
+    }
+
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin: 2rem 0;
+    }
+
+    .feature-card {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 1.5rem;
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s;
+    }
+
+    .feature-card:hover {
+        background: rgba(0, 168, 232, 0.1);
+        border-color: #00a8e8;
+    }
+
+    .feature-card i {
+        font-size: 2.5rem;
+        color: #00a8e8;
+        margin-bottom: 1rem;
+    }
+
+    .code-block {
+        background: rgba(0, 0, 0, 0.3);
+        border-left: 4px solid #00a8e8;
+        padding: 1rem;
+        border-radius: 5px;
+        font-family: 'Courier New', monospace;
+        overflow-x: auto;
+        margin: 1rem 0;
+    }
+
+    .metric-card {
+        background: linear-gradient(135deg, rgba(0, 184, 148, 0.2), rgba(0, 168, 232, 0.2));
+        padding: 1.5rem;
+        border-radius: 15px;
+        text-align: center;
+        margin: 0.5rem;
+    }
+
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #00a8e8;
+    }
+
+    .metric-label {
+        color: rgba(255, 255, 255, 0.7);
+        margin-top: 0.5rem;
+    }
+
+    .flow-diagram {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        margin: 2rem 0;
+    }
+
+    .nav-tabs {
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .nav-tabs .nav-link {
+        color: rgba(255, 255, 255, 0.7);
+        border: none;
+        padding: 1rem 2rem;
+        transition: all 0.3s;
+    }
+
+    .nav-tabs .nav-link:hover {
+        color: #00a8e8;
+        background: rgba(0, 168, 232, 0.1);
+    }
+
+    .nav-tabs .nav-link.active {
+        color: #00a8e8;
+        background: rgba(0, 168, 232, 0.2);
+        border-bottom: 3px solid #00a8e8;
+    }
+
+    .tab-content {
+        padding: 2rem 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Quick Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-value">8</div>
+            <div class="metric-label">Pages</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-value">15+</div>
+            <div class="metric-label">API Endpoints</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-value">5</div>
+            <div class="metric-label">DB Tables</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-value">73.3%</div>
+            <div class="metric-label">ML Accuracy</div>
+        </div>
+    </div>
+</div>
+
+<!-- Navigation Tabs -->
+<div class="glass-card">
+    <ul class="nav nav-tabs" id="docTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button">
+                <i class="bi bi-house-door"></i> Overview
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="architecture-tab" data-bs-toggle="tab" data-bs-target="#architecture" type="button">
+                <i class="bi bi-diagram-3"></i> Architecture
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="features-tab" data-bs-toggle="tab" data-bs-target="#features" type="button">
+                <i class="bi bi-stars"></i> Features
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="technical-tab" data-bs-toggle="tab" data-bs-target="#technical" type="button">
+                <i class="bi bi-code-slash"></i> Technical
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="api-tab" data-bs-toggle="tab" data-bs-target="#api" type="button">
+                <i class="bi bi-server"></i> API
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="docTabContent">
+        
+        <!-- Overview Tab -->
+        <div class="tab-pane fade show active" id="overview" role="tabpanel">
+            <div class="doc-section">
+                <h3><i class="bi bi-info-circle"></i> About AquaGuard AI</h3>
+                <p style="font-size: 1.1rem; line-height: 1.8;">
+                    AquaGuard AI is an intelligent water management system that combines <strong>Computer Vision</strong>, 
+                    <strong>Machine Learning</strong>, and <strong>IoT principles</strong> to provide real-time water quality 
+                    assessment and consumption monitoring. Built as a comprehensive final year project, it demonstrates 
+                    full-stack development, AI integration, and real-world problem-solving.
+                </p>
+                
+                <div style="background: rgba(0,168,232,0.1); border-left: 4px solid #00a8e8; padding: 1.5rem; border-radius: 10px; margin-top: 1.5rem;">
+                    <h6><i class="bi bi-github"></i> Open Source Project</h6>
+                    <p style="margin-bottom: 0.5rem;">
+                        This project is available on GitHub for learning and collaboration.
+                    </p>
+                    <a href="https://github.com/vharinivdm/waterqualitydetector" target="_blank" class="btn btn-sm btn-gradient">
+                        <i class="bi bi-github"></i> View on GitHub
+                    </a>
+                    <a href="https://github.com/vharinivdm/waterqualitydetector#readme" target="_blank" class="btn btn-sm btn-outline-light ms-2">
+                        <i class="bi bi-book"></i> Documentation
+                    </a>
+                </div>
+            </div>
+
+            <div class="doc-section">
+                <h3><i class="bi bi-bullseye"></i> Key Objectives</h3>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <i class="bi bi-droplet-half"></i>
+                        <h5>Water Quality Detection</h5>
+                        <p>AI-powered classification using HSV color analysis and texture detection</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="bi bi-speedometer"></i>
+                        <h5>Smart Meter Reading</h5>
+                        <p>Automatic digitization of analog meters using OCR technology</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="bi bi-graph-up"></i>
+                        <h5>Real-time Analytics</h5>
+                        <p>Interactive dashboards with historical trends and insights</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="bi bi-bell"></i>
+                        <h5>Alert System</h5>
+                        <p>Automated notifications for unsafe water and high usage</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="doc-section">
+                <h3><i class="bi bi-stack"></i> Technology Stack</h3>
+                <div style="margin: 1.5rem 0;">
+                    <h6 style="margin-bottom: 1rem;">Backend</h6>
+                    <span class="tech-badge"><i class="bi bi-python"></i> Python 3.12</span>
+                    <span class="tech-badge">Flask 3.0</span>
+                    <span class="tech-badge">SQLite</span>
+                    <span class="tech-badge">scikit-learn</span>
+                    <span class="tech-badge">OpenCV</span>
+                    <span class="tech-badge">Pandas</span>
+                </div>
+                <div style="margin: 1.5rem 0;">
+                    <h6 style="margin-bottom: 1rem;">Frontend</h6>
+                    <span class="tech-badge"><i class="bi bi-bootstrap"></i> Bootstrap 5</span>
+                    <span class="tech-badge">Chart.js</span>
+                    <span class="tech-badge">JavaScript ES6</span>
+                    <span class="tech-badge">HTML5/CSS3</span>
+                </div>
+                <div style="margin: 1.5rem 0;">
+                    <h6 style="margin-bottom: 1rem;">Machine Learning</h6>
+                    <span class="tech-badge">Random Forest</span>
+                    <span class="tech-badge">Feature Engineering</span>
+                    <span class="tech-badge">Train-Test Split</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Architecture Tab -->
+        <div class="tab-pane fade" id="architecture" role="tabpanel">
+            <div class="doc-section">
+                <h3><i class="bi bi-diagram-3"></i> System Architecture</h3>
+                
+                <div class="architecture-diagram">
+                    <h5 class="text-center mb-4">Three-Tier Architecture</h5>
+                    
+                    <!-- Presentation Layer -->
+                    <div class="diagram-box">
+                        <h6><i class="bi bi-browser-chrome"></i> Presentation Layer</h6>
+                        <p style="margin-top: 1rem; color: rgba(255,255,255,0.8);">
+                            HTML5 | Bootstrap 5 | Chart.js<br>
+                            8 Pages | Responsive Design
+                        </p>
+                    </div>
+                    
+                    <div class="text-center">
+                        <i class="bi bi-arrow-down diagram-arrow"></i>
+                    </div>
+                    
+                    <!-- Application Layer -->
+                    <div class="diagram-box">
+                        <h6><i class="bi bi-server"></i> Application Layer</h6>
+                        <p style="margin-top: 1rem; color: rgba(255,255,255,0.8);">
+                            Flask Backend | REST API<br>
+                            15+ Endpoints | Session Management
+                        </p>
+                    </div>
+                    
+                    <div class="text-center">
+                        <i class="bi bi-arrow-down diagram-arrow"></i>
+                    </div>
+                    
+                    <!-- Business Logic Layer -->
+                    <div class="diagram-box">
+                        <h6><i class="bi bi-gear"></i> Business Logic Layer</h6>
+                        <p style="margin-top: 1rem; color: rgba(255,255,255,0.8);">
+                            ML Models | OCR Processing<br>
+                            Feature Extraction | Algorithms
+                        </p>
+                    </div>
+                    
+                    <div class="text-center">
+                        <i class="bi bi-arrow-down diagram-arrow"></i>
+                    </div>
+                    
+                    <!-- Data Layer -->
+                    <div class="diagram-box">
+                        <h6><i class="bi bi-database"></i> Data Layer</h6>
+                        <p style="margin-top: 1rem; color: rgba(255,255,255,0.8);">
+                            SQLite Database<br>
+                            5 Tables | Persistent Storage
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="doc-section">
+                <h3><i class="bi bi-flow-chart"></i> Request Flow</h3>
+                <div class="architecture-diagram">
+                    <div class="flow-diagram">
+                        <div class="diagram-box" style="min-width: 120px;">
+                            <i class="bi bi-person-circle" style="font-size: 2rem; color: #00a8e8;"></i>
+                            <p style="margin-top: 0.5rem;">User</p>
+                        </div>
+                        
+                        <i class="bi bi-arrow-right diagram-arrow"></i>
+                        
+                        <div class="diagram-box" style="min-width: 120px;">
+                            <i class="bi bi-window" style="font-size: 2rem; color: #00a8e8;"></i>
+                            <p style="margin-top: 0.5rem;">Browser</p>
+                        </div>
+                        
+                        <i class="bi bi-arrow-right diagram-arrow"></i>
+                        
+                        <div class="diagram-box" style="min-width: 120px;">
+                            <i class="bi bi-hdd-network" style="font-size: 2rem; color: #00a8e8;"></i>
+                            <p style="margin-top: 0.5rem;">Flask</p>
+                        </div>
+                        
+                        <i class="bi bi-arrow-right diagram-arrow"></i>
+                        
+                        <div class="diagram-box" style="min-width: 120px;">
+                            <i class="bi bi-cpu" style="font-size: 2rem; color: #00a8e8;"></i>
+                            <p style="margin-top: 0.5rem;">ML Model</p>
+                        </div>
+                        
+                        <i class="bi bi-arrow-right diagram-arrow"></i>
+                        
+                        <div class="diagram-box" style="min-width: 120px;">
+                            <i class="bi bi-database" style="font-size: 2rem; color: #00a8e8;"></i>
+                            <p style="margin-top: 0.5rem;">Database</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="doc-section">
+                <h3><i class="bi bi-database"></i> Database Schema</h3>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="feature-card">
+                            <h6><i class="bi bi-person"></i> users</h6>
+                            <p style="font-size: 0.85rem; color: rgba(255,255,255,0.7);">
+                                User accounts and authentication data
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="feature-card">
+                            <h6><i class="bi bi-droplet"></i> quality_readings</h6>
+                            <p style="font-size: 0.85rem; color: rgba(255,255,255,0.7);">
+                                Water quality test results and features
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="feature-card">
+                            <h6><i class="bi bi-speedometer"></i> meter_readings</h6>
+                            <p style="font-size: 0.85rem; color: rgba(255,255,255,0.7);">
+                                Meter scan results and usage data
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="feature-card">
+                            <h6><i class="bi bi-bell"></i> alerts</h6>
+                            <p style="font-size: 0.85rem; color: rgba(255,255,255,0.7);">
+                                System notifications and warnings
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="feature-card">
+                            <h6><i class="bi bi-gear"></i> settings</h6>
+                            <p style="font-size: 0.85rem; color: rgba(255,255,255,0.7);">
+                                User preferences and configuration
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Tab -->
+        <div class="tab-pane fade" id="features" role="tabpanel">
+            <div class="doc-section">
+                <h3><i class="bi bi-list-check"></i> Complete Feature List</h3>
+                
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <h5><i class="bi bi-shield-check"></i> Core Features</h5>
+                        <ul style="line-height: 2; color: rgba(255,255,255,0.8);">
+                            <li>AI-powered water quality classification</li>
+                            <li>Automatic meter digit recognition (OCR)</li>
+                            <li>User authentication & authorization</li>
+                            <li>Multi-user support</li>
+                            <li>Session management</li>
+                            <li>Password encryption (SHA-256)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h5><i class="bi bi-graph-up"></i> Analytics Features</h5>
+                        <ul style="line-height: 2; color: rgba(255,255,255,0.8);">
+                            <li>Interactive Chart.js visualizations</li>
+                            <li>Usage trend analysis</li>
+                            <li>Safety score tracking</li>
+                            <li>Reading frequency monitoring</li>
+                            <li>Historical data filtering</li>
+                            <li>Export to Excel reports</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h5><i class="bi bi-bell"></i> Alert System</h5>
+                        <ul style="line-height: 2; color: rgba(255,255,255,0.8);">
+                            <li>Real-time notifications</li>
+                            <li>Unsafe water alerts (HIGH severity)</li>
+                            <li>High usage alerts (MEDIUM severity)</li>
+                            <li>Color-coded by severity</li>
+                            <li>Mark as read functionality</li>
+                            <li>Alert count badge</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h5><i class="bi bi-palette"></i> UI/UX Features</h5>
+                        <ul style="line-height: 2; color: rgba(255,255,255,0.8);">
+                            <li>Glassmorphism design</li>
+                            <li>Dark/Light theme toggle</li>
+                            <li>Responsive mobile design</li>
+                            <li>Smooth animations</li>
+                            <li>Bootstrap Icons</li>
+                            <li>Professional sidebar navigation</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="doc-section">
+                <h3><i class="bi bi-trophy"></i> Project Highlights</h3>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <i class="bi bi-code-square"></i>
+                        <h6>3000+ Lines of Code</h6>
+                        <p>Python, HTML, CSS, JavaScript</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="bi bi-file-code"></i>
+                        <h6>20+ Source Files</h6>
+                        <p>Well-organized structure</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="bi bi-images"></i>
+                        <h6>73 Training Images</h6>
+                        <p>Clean + Dirty water samples</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="bi bi-check-circle"></i>
+                        <h6>73.3% Accuracy</h6>
+                        <p>Random Forest classifier</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Tab -->
+        <div class="tab-pane fade" id="technical" role="tabpanel">
+            <div class="doc-section">
+                <h3><i class="bi bi-cpu"></i> Machine Learning Model</h3>
+                
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <h6>Model Configuration</h6>
+                        <div class="code-block">
+RandomForestClassifier(<br>
+&nbsp;&nbsp;n_estimators=200,<br>
+&nbsp;&nbsp;max_depth=10,<br>
+&nbsp;&nbsp;min_samples_split=5,<br>
+&nbsp;&nbsp;min_samples_leaf=2,<br>
+&nbsp;&nbsp;class_weight='balanced'<br>
+)
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6>Feature Engineering</h6>
+                        <ul style="line-height: 2; color: rgba(255,255,255,0.8);">
+                            <li><strong>Hue:</strong> Color analysis (16.4% importance)</li>
+                            <li><strong>Saturation:</strong> Color intensity (57.5%)</li>
+                            <li><strong>Value:</strong> Brightness (17.4%)</li>
+                            <li><strong>Texture:</strong> Laplacian variance (8.7%)</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <h6 class="mt-4">Performance Metrics</h6>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value">73.3%</div>
+                            <div class="metric-label">Overall Accuracy</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value">82%</div>
+                            <div class="metric-label">Dirty Detection</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value">50%</div>
+                            <div class="metric-label">Clean Detection</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value">73</div>
+                            <div class="metric-label">Training Samples</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="doc-section">
+                <h3><i class="bi bi-eye"></i> OCR System</h3>
+                <p>Dual-strategy approach for maximum accuracy:</p>
+                
+                <div class="row g-4 mt-2">
+                    <div class="col-md-6">
+                        <div class="feature-card">
+                            <h6><i class="bi bi-1-circle"></i> Smart Filename Parsing</h6>
+                            <p style="margin-top: 1rem; color: rgba(255,255,255,0.7);">
+                                Extracts reading from structured filenames using regex patterns.
+                                Provides 100% accuracy for test images.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="feature-card">
+                            <h6><i class="bi bi-2-circle"></i> Tesseract OCR</h6>
+                            <p style="margin-top: 1rem; color: rgba(255,255,255,0.7);">
+                                Falls back to real OCR for camera photos. Includes preprocessing
+                                with resize, threshold, and digit-only extraction.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="doc-section">
+                <h3><i class="bi bi-file-code"></i> Project Structure</h3>
+                <div class="code-block" style="font-size: 0.85rem;">
+Water Detection/<br>
+├── backend/<br>
+│&nbsp;&nbsp;&nbsp;├── app_enhanced.py&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Main Flask app<br>
+│&nbsp;&nbsp;&nbsp;├── database.py&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# DB management<br>
+│&nbsp;&nbsp;&nbsp;├── quality_model.py&nbsp;&nbsp;&nbsp;&nbsp;# Feature extraction<br>
+│&nbsp;&nbsp;&nbsp;├── ocr_model.py&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Meter reading<br>
+│&nbsp;&nbsp;&nbsp;└── train_model.py&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# ML training<br>
+├── templates/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# HTML pages<br>
+├── dataset/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Training data<br>
+├── models/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# ML models<br>
+├── data/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Database<br>
+└── uploads/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Temp files
+                </div>
+            </div>
+        </div>
+
+        <!-- API Tab -->
+        <div class="tab-pane fade" id="api" role="tabpanel">
+            <div class="doc-section">
+                <h3><i class="bi bi-server"></i> API Endpoints</h3>
+                
+                <h6 class="mt-4"><i class="bi bi-shield-lock"></i> Authentication</h6>
+                <div class="code-block">
+POST /login&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- User login<br>
+POST /register&nbsp;&nbsp;&nbsp;&nbsp;- Create account<br>
+GET&nbsp;&nbsp;/logout&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Sign out
+                </div>
+                
+                <h6 class="mt-4"><i class="bi bi-droplet"></i> Water Quality</h6>
+                <div class="code-block">
+POST /api/predict_quality&nbsp;&nbsp;- Analyze water sample<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Parameters: file, location, notes<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Returns: safety_status, score, confidence
+                </div>
+                
+                <h6 class="mt-4"><i class="bi bi-speedometer"></i> Meter Reading</h6>
+                <div class="code-block">
+POST /api/read_meter&nbsp;&nbsp;- Scan water meter<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Parameters: file, meter_id, location<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Returns: reading_value, usage_status
+                </div>
+                
+                <h6 class="mt-4"><i class="bi bi-graph-up"></i> Analytics</h6>
+                <div class="code-block">
+GET /api/analytics_data?days=30&nbsp;&nbsp;- Get chart data<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Returns: quality_trend, meter_trend, distribution
+                </div>
+                
+                <h6 class="mt-4"><i class="bi bi-download"></i> Export</h6>
+                <div class="code-block">
+GET /api/export_report?type=csv&nbsp;&nbsp;- Export Excel<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Returns: .xlsx file with all readings
+                </div>
+                
+                <h6 class="mt-4"><i class="bi bi-gear"></i> Settings</h6>
+                <div class="code-block">
+POST /api/settings/update&nbsp;&nbsp;- Update preferences<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Parameters: eco_limit, theme, notifications
+                </div>
+            </div>
+
+            <div class="doc-section">
+                <h3><i class="bi bi-code-slash"></i> Example Usage</h3>
+                
+                <h6>Water Quality Check</h6>
+                <div class="code-block">
+// JavaScript Example<br>
+const formData = new FormData();<br>
+formData.append('file', imageFile);<br>
+formData.append('location', 'Kitchen Tap');<br>
+<br>
+const response = await fetch('/api/predict_quality', {<br>
+&nbsp;&nbsp;method: 'POST',<br>
+&nbsp;&nbsp;body: formData<br>
+});<br>
+<br>
+const result = await response.json();<br>
+// result.safety_status = 'SAFE' or 'UNSAFE'<br>
+// result.safety_score = 'XX/100'
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Quick Links -->
+<div class="row g-4 mt-4">
+    <div class="col-md-4">
+        <div class="glass-card text-center">
+            <i class="bi bi-book" style="font-size: 3rem; color: #00a8e8; margin-bottom: 1rem;"></i>
+            <h5>Full Documentation</h5>
+            <p style="color: rgba(255,255,255,0.7); margin-bottom: 1rem;">See PROJECT_DOCUMENTATION.md for complete details</p>
+            <a href="https://github.com/vharinivdm/waterqualitydetector" target="_blank" class="btn btn-sm btn-outline-light">
+                <i class="bi bi-file-text"></i> View Docs
+            </a>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="glass-card text-center">
+            <i class="bi bi-github" style="font-size: 3rem; color: #00a8e8; margin-bottom: 1rem;"></i>
+            <h5>Source Code</h5>
+            <p style="color: rgba(255,255,255,0.7); margin-bottom: 1rem;">View and star the project on GitHub</p>
+            <a href="https://github.com/vharinivdm/waterqualitydetector" target="_blank" class="btn btn-sm btn-gradient">
+                <i class="bi bi-github"></i> View on GitHub
+            </a>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="glass-card text-center">
+            <i class="bi bi-question-circle" style="font-size: 3rem; color: #00a8e8; margin-bottom: 1rem;"></i>
+            <h5>Support</h5>
+            <p style="color: rgba(255,255,255,0.7); margin-bottom: 1rem;">Check README.md and STARTUP_GUIDE.md for help</p>
+            <a href="https://github.com/vharinivdm/waterqualitydetector#readme" target="_blank" class="btn btn-sm btn-outline-light">
+                <i class="bi bi-life-preserver"></i> Get Help
+            </a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-scroll to section if hash exists
+    if (window.location.hash) {
+        const hash = window.location.hash.substring(1);
+        const tab = document.getElementById(hash + '-tab');
+        if (tab) {
+            tab.click();
+        }
+    }
+</script>
+{% endblock %}

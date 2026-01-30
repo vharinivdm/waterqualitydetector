@@ -45,17 +45,46 @@ AquaGuard AI is a **comprehensive, AI-powered water management platform** that c
 
 ## 🚀 Quick Start
 
-### Installation
-```bash
-# 1. Navigate to project directory
-cd "/Users/ra001708/Downloads/Water Detection"
+### Easy Startup (Recommended)
 
-# 2. Install dependencies
+We've provided automatic startup scripts for all platforms:
+
+**macOS/Linux:**
+```bash
+./start.sh
+```
+
+**Windows:**
+```cmd
+start.bat
+```
+
+**Cross-Platform (Python):**
+```bash
+python3 start.py
+```
+
+The startup script will automatically:
+- ✅ Check Python installation
+- ✅ Install dependencies
+- ✅ Initialize database
+- ✅ Train ML model (if needed)
+- ✅ Start the server
+
+### Manual Installation
+
+If you prefer manual setup:
+
+```bash
+# 1. Install dependencies
 pip install -r requirements.txt
 
-# 3. Initialize database
+# 2. Initialize database
 cd backend
 python3 database.py
+
+# 3. Train model
+python3 train_model.py
 
 # 4. Start application
 python3 app_enhanced.py
@@ -65,6 +94,8 @@ python3 app_enhanced.py
 - **URL:** http://localhost:9000
 - **Username:** demo
 - **Password:** demo123
+
+📖 See `STARTUP_GUIDE.md` for detailed startup instructions and troubleshooting.
 
 ---
 

@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - AquaGuard AI{% endblock %}
+{% block page_title %}Settings{% endblock %}
+
+{% block content %}
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- General Settings -->
+        <div class="glass-card mb-4">
+            <div class="card-header-custom">
+                <h3><i class="bi bi-sliders"></i> General Settings</h3>
+            </div>
+            
+            <form id="settingsForm">
+                <div class="mb-4">
+                    <label class="form-label">Monthly Eco Limit (Liters)</label>
+                    <input type="number" class="form-control" id="eco_limit" value="{{ settings.eco_limit if settings else 14500 }}">
+                    <small style="color: rgba(255,255,255,0.6);">Alert will trigger when usage exceeds this limit</small>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label">Theme</label>
+                    <select class="form-select" id="theme">
+                        <option value="dark" {% if settings and settings.theme == 'dark' %}selected{% endif %}>Dark Mode</option>
+                        <option value="light" {% if settings and settings.theme == 'light' %}selected{% endif %}>Light Mode</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label">Notifications</label>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="alert_email" {% if settings and settings.alert_email %}checked{% endif %}>
+                        <label class="form-check-label" for="alert_email">
+                            Email Notifications
+                        </label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="alert_push" {% if settings and settings.alert_push %}checked{% endif %}>
+                        <label class="form-check-label" for="alert_push">
+                            Push Notifications
+                        </label>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-gradient">
+                    <i class="bi bi-save"></i> Save Changes
+                </button>
+            </form>
+        </div>
+        
+        <!-- Account Settings -->
+        <div class="glass-card">
+            <div class="card-header-custom">
+                <h3><i class="bi bi-person-circle"></i> Account Information</h3>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Username</label>
+                <input type="text" class="form-control" value="{{ user.username }}" disabled>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-control" value="{{ user.full_name }}" disabled>
+            </div>
+            
+            <div class="alert-custom alert-warning">
+                <i class="bi bi-info-circle"></i> Contact administrator to update account details
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Quick Stats -->
+        <div class="glass-card mb-4">
+            <h5 class="mb-3"><i class="bi bi-graph-up"></i> Your Statistics</h5>
+            
+            <div class="d-flex justify-content-between mb-3 pb-3" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <span>Quality Tests:</span>
+                <strong>{{ stats.quality.total or 0 }}</strong>
+            </div>
+            
+            <div class="d-flex justify-content-between mb-3 pb-3" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <span>Meter Readings:</span>
+                <strong>{{ stats.meter.total_readings or 0 }}</strong>
+            </div>
+            
+            <div class="d-flex justify-content-between">
+                <span>Active Alerts:</span>
+                <strong class="text-warning">{{ stats.alerts.unread_alerts or 0 }}</strong>
+            </div>
+        </div>
+        
+        <!-- Data Management -->
+        <div class="glass-card mb-4">
+            <h5 class="mb-3"><i class="bi bi-database"></i> Data Management</h5>
+            
+            <a href="/api/export_report?type=csv" class="btn btn-outline-light w-100 mb-2">
+                <i class="bi bi-download"></i> Export All Data
+            </a>
+            
+            <button class="btn btn-outline-light w-100" onclick="clearHistory()">
+                <i class="bi bi-trash"></i> Clear History
+            </button>
+        </div>
+        
+        <!-- About -->
+        <div class="glass-card">
+            <h5 class="mb-3"><i class="bi bi-info-circle"></i> About</h5>
+            
+            <p style="color: rgba(255,255,255,0.7); font-size: 0.9rem;">
+                <strong>AquaGuard AI</strong><br>
+                Version 2.0<br>
+                Smart Water Management System
+            </p>
+            
+            <div class="mt-3" style="font-size: 0.85rem; color: rgba(255,255,255,0.5);">
+                <i class="bi bi-shield-check"></i> Your data is securely stored<br>
+                <i class="bi bi-cpu"></i> Powered by AI & Machine Learning<br>
+                <i class="bi bi-code-slash"></i> Built with Flask & Python
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Alert (Hidden by default) -->
+<div id="successAlert" class="position-fixed top-0 end-0 p-3" style="z-index: 9999; display: none;">
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle"></i> Settings saved successfully!
+        <button type="button" class="btn-close" onclick="document.getElementById('successAlert').style.display='none'"></button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load current theme into form
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.getElementById('theme').value = savedTheme;
+    });
+
+    // Preview theme change
+    document.getElementById('theme').addEventListener('change', function() {
+        const theme = this.value;
+        if (theme === 'light') {
+            document.body.classList.add('light-theme');
+        } else {
+            document.body.classList.remove('light-theme');
+        }
+    });
+
+    document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const settings = {
+            eco_limit: parseInt(document.getElementById('eco_limit').value),
+            theme: document.getElementById('theme').value,
+            alert_email: document.getElementById('alert_email').checked ? 1 : 0,
+            alert_push: document.getElementById('alert_push').checked ? 1 : 0
+        };
+        
+        try {
+            const response = await fetch('/api/settings/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(settings)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Save theme to localStorage
+                localStorage.setItem('theme', settings.theme);
+                
+                // Apply theme
+                if (settings.theme === 'light') {
+                    document.body.classList.add('light-theme');
+                } else {
+                    document.body.classList.remove('light-theme');
+                }
+                
+                // Show success message
+                document.getElementById('successAlert').style.display = 'block';
+                
+                // Hide after 3 seconds
+                setTimeout(() => {
+                    document.getElementById('successAlert').style.display = 'none';
+                }, 3000);
+            }
+        } catch (error) {
+            alert('Error saving settings: ' + error.message);
+        }
+    });
+    
+    function clearHistory() {
+        if (confirm('Are you sure you want to clear all reading history? This action cannot be undone.')) {
+            alert('Feature to be implemented: Clear all history data');
+            // Implement API call to clear history
+        }
+    }
+</script>
+{% endblock %}

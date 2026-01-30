@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - AquaGuard AI{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- Quick Stats -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="icon"><i class="bi bi-droplet-fill"></i></div>
+            <div class="value">{{ stats.quality.total or 0 }}</div>
+            <div class="label">Quality Tests</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="icon"><i class="bi bi-speedometer"></i></div>
+            <div class="value">{{ stats.meter.total_readings or 0 }}</div>
+            <div class="label">Meter Readings</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="icon"><i class="bi bi-shield-check"></i></div>
+            <div class="value">{{ ((stats.quality.safe_count or 0) / (stats.quality.total or 1) * 100) | round(0) | int }}%</div>
+            <div class="label">Safety Rate</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="icon"><i class="bi bi-bell-fill"></i></div>
+            <div class="value">{{ stats.alerts.unread_alerts or 0 }}</div>
+            <div class="label">Active Alerts</div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Alerts Section -->
+{% if alerts %}
+<div class="glass-card" id="alerts">
+    <div class="card-header-custom">
+        <h3><i class="bi bi-exclamation-triangle-fill"></i> Active Alerts</h3>
+    </div>
+    
+    {% for alert in alerts %}
+    <div class="alert-custom {% if alert.severity == 'HIGH' %}alert-danger{% elif alert.severity == 'MEDIUM' %}alert-warning{% else %}alert-success{% endif %}">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <strong>{{ alert.alert_type.replace('_', ' ').title() }}</strong>
+                <p class="mb-0">{{ alert.alert_message }}</p>
+                <small style="opacity: 0.7;">{{ alert.timestamp }}</small>
+            </div>
+            <button class="btn btn-sm btn-outline-light" onclick="markAlertRead({{ alert.id }})">
+                <i class="bi bi-check"></i> Mark Read
+            </button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Quick Actions -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="glass-card">
+            <div class="card-header-custom">
+                <h3><i class="bi bi-droplet-half"></i> Water Quality Check</h3>
+            </div>
+            <p style="color: rgba(255,255,255,0.7); margin-bottom: 1.5rem;">
+                Upload a water sample image to analyze its safety and get instant results.
+            </p>
+            <a href="/quality" class="btn btn-gradient w-100">
+                <i class="bi bi-camera"></i> Start Quality Test
+            </a>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="glass-card">
+            <div class="card-header-custom">
+                <h3><i class="bi bi-speedometer"></i> Meter Reading</h3>
+            </div>
+            <p style="color: rgba(255,255,255,0.7); margin-bottom: 1.5rem;">
+                Scan your analog water meter to digitize readings and track usage.
+            </p>
+            <a href="/meter" class="btn btn-gradient w-100">
+                <i class="bi bi-camera"></i> Scan Meter
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="glass-card">
+    <div class="card-header-custom">
+        <h3><i class="bi bi-clock-history"></i> Recent Activity</h3>
+        <a href="/history" class="btn btn-sm btn-outline-light">View All</a>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-dark">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Result</th>
+                    <th>Status</th>
+                    <th>Date/Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if stats.quality.total and stats.quality.total > 0 %}
+                <tr>
+                    <td><i class="bi bi-droplet-fill text-info"></i> Water Quality</td>
+                    <td>{{ stats.quality.avg_score|round(0)|int }}/100</td>
+                    <td>
+                        {% if stats.quality.safe_count > stats.quality.unsafe_count %}
+                        <span class="badge badge-success">Safe</span>
+                        {% else %}
+                        <span class="badge badge-danger">Unsafe</span>
+                        {% endif %}
+                    </td>
+                    <td>Recent</td>
+                </tr>
+                {% endif %}
+                
+                {% if stats.meter.total_readings and stats.meter.total_readings > 0 %}
+                <tr>
+                    <td><i class="bi bi-speedometer text-primary"></i> Meter Reading</td>
+                    <td>{{ stats.meter.avg_usage|round(0)|int }} L</td>
+                    <td>
+                        {% if stats.meter.avg_usage < 14500 %}
+                        <span class="badge badge-success">Normal</span>
+                        {% else %}
+                        <span class="badge badge-warning">High</span>
+                        {% endif %}
+                    </td>
+                    <td>Recent</td>
+                </tr>
+                {% endif %}
+                
+                {% if not stats.quality.total and not stats.meter.total_readings %}
+                <tr>
+                    <td colspan="4" class="text-center" style="color: rgba(255,255,255,0.5);">
+                        No activity yet. Start by testing water quality or scanning your meter!
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Quick Tips -->
+<div class="row g-4 mt-2">
+    <div class="col-md-4">
+        <div class="glass-card text-center">
+            <i class="bi bi-lightbulb-fill" style="font-size: 2.5rem; color: #fdcb6e; margin-bottom: 1rem;"></i>
+            <h5>Daily Monitoring</h5>
+            <p style="color: rgba(255,255,255,0.6); font-size: 0.9rem;">
+                Test your water quality daily for optimal health safety.
+            </p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="glass-card text-center">
+            <i class="bi bi-graph-up-arrow" style="font-size: 2.5rem; color: #00b894; margin-bottom: 1rem;"></i>
+            <h5>Track Usage</h5>
+            <p style="color: rgba(255,255,255,0.6); font-size: 0.9rem;">
+                Monitor your water consumption to identify potential leaks.
+            </p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="glass-card text-center">
+            <i class="bi bi-award-fill" style="font-size: 2.5rem; color: #667eea; margin-bottom: 1rem;"></i>
+            <h5>Eco Friendly</h5>
+            <p style="color: rgba(255,255,255,0.6); font-size: 0.9rem;">
+                Stay within eco-limits to reduce environmental impact.
+            </p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function markAlertRead(alertId) {
+        try {
+            const response = await fetch(`/api/alerts/mark_read/${alertId}`, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                location.reload();
+            }
+        } catch (error) {
+            console.error('Error marking alert as read:', error);
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,10 @@
+flask
+opencv-python-headless
+numpy
+scikit-learn
+pandas
+pytesseract
+Pillow
+scikit-image
+jupyter
+openpyxl

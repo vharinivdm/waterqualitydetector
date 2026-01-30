@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - AquaGuard AI{% endblock %}
+{% block page_title %}Analytics & Insights{% endblock %}
+
+{% block content %}
+
+<!-- Time Range Selector -->
+<div class="glass-card mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Select Time Range</h5>
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-light" onclick="loadAnalytics(7)">7 Days</button>
+            <button type="button" class="btn btn-outline-light active" onclick="loadAnalytics(30)">30 Days</button>
+            <button type="button" class="btn btn-outline-light" onclick="loadAnalytics(90)">90 Days</button>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="glass-card">
+            <div class="card-header-custom">
+                <h3><i class="bi bi-graph-up"></i> Water Usage Trend</h3>
+            </div>
+            <canvas id="usageTrendChart" height="80"></canvas>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="glass-card">
+            <div class="card-header-custom">
+                <h3><i class="bi bi-pie-chart"></i> Safety Distribution</h3>
+            </div>
+            <canvas id="safetyPieChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="glass-card">
+            <div class="card-header-custom">
+                <h3><i class="bi bi-bar-chart"></i> Quality Score Trend</h3>
+            </div>
+            <canvas id="qualityTrendChart" height="100"></canvas>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="glass-card">
+            <div class="card-header-custom">
+                <h3><i class="bi bi-clipboard-data"></i> Reading Frequency</h3>
+            </div>
+            <canvas id="frequencyChart" height="100"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row g-4">
+    <div class="col-md-3">
+        <div class="glass-card text-center">
+            <i class="bi bi-droplet-fill" style="font-size: 2.5rem; color: #00a8e8; margin-bottom: 1rem;"></i>
+            <h6 style="color: rgba(255,255,255,0.7);">Avg Safety Score</h6>
+            <div id="avgSafetyScore" style="font-size: 2rem; font-weight: 700;">--</div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="glass-card text-center">
+            <i class="bi bi-speedometer" style="font-size: 2.5rem; color: #00b894; margin-bottom: 1rem;"></i>
+            <h6 style="color: rgba(255,255,255,0.7);">Avg Water Usage</h6>
+            <div id="avgUsage" style="font-size: 2rem; font-weight: 700;">--</div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="glass-card text-center">
+            <i class="bi bi-calendar-check" style="font-size: 2.5rem; color: #fdcb6e; margin-bottom: 1rem;"></i>
+            <h6 style="color: rgba(255,255,255,0.7);">Total Tests</h6>
+            <div id="totalTests" style="font-size: 2rem; font-weight: 700;">--</div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="glass-card text-center">
+            <i class="bi bi-exclamation-triangle" style="font-size: 2.5rem; color: #d63031; margin-bottom: 1rem;"></i>
+            <h6 style="color: rgba(255,255,255,0.7);">High Alerts</h6>
+            <div id="highAlerts" style="font-size: 2rem; font-weight: 700;">--</div>
+        </div>
+    </div>
+</div>
+
+<!-- Insights Section -->
+<div class="glass-card mt-4">
+    <div class="card-header-custom">
+        <h3><i class="bi bi-lightbulb-fill"></i> AI-Powered Insights</h3>
+    </div>
+    
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div style="background: rgba(0,184,148,0.1); border-left: 4px solid #00b894; padding: 1.5rem; border-radius: 10px;">
+                <h6><i class="bi bi-check-circle"></i> Positive Trends</h6>
+                <p class="mb-0">Your water quality has been consistently safe over the past 30 days. Keep up the good work!</p>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div style="background: rgba(253,203,110,0.1); border-left: 4px solid #fdcb6e; padding: 1.5rem; border-radius: 10px;">
+                <h6><i class="bi bi-exclamation-circle"></i> Areas to Watch</h6>
+                <p class="mb-0">Water usage peaks detected on weekends. Consider checking for inefficient appliances.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let charts = {};
+    
+    async function loadAnalytics(days = 30) {
+        try {
+            const response = await fetch(`/api/analytics_data?days=${days}`);
+            const data = await response.json();
+            
+            // Update statistics
+            updateStatistics(data);
+            
+            // Create/Update charts
+            createCharts(data);
+            
+        } catch (error) {
+            console.error('Error loading analytics:', error);
+        }
+    }
+    
+    function updateStatistics(data) {
+        // Calculate average safety score
+        const qualityReadings = data.quality_trend;
+        if (qualityReadings.length > 0) {
+            const avgScore = qualityReadings.reduce((sum, r) => sum + r.avg_score, 0) / qualityReadings.length;
+            document.getElementById('avgSafetyScore').textContent = Math.round(avgScore);
+        } else {
+            document.getElementById('avgSafetyScore').textContent = '--';
+        }
+        
+        // Calculate average usage
+        const meterReadings = data.meter_trend;
+        if (meterReadings.length > 0) {
+            const avgUsage = meterReadings.reduce((sum, r) => sum + r.avg_usage, 0) / meterReadings.length;
+            document.getElementById('avgUsage').textContent = Math.round(avgUsage) + 'L';
+        } else {
+            document.getElementById('avgUsage').textContent = '--';
+        }
+        
+        // Total tests
+        const totalTests = qualityReadings.reduce((sum, r) => sum + r.count, 0);
+        document.getElementById('totalTests').textContent = totalTests;
+        
+        // High alerts (unsafe water)
+        const unsafeCount = data.safety_distribution.find(d => d.safety_status === 'UNSAFE')?.count || 0;
+        document.getElementById('highAlerts').textContent = unsafeCount;
+    }
+    
+    function createCharts(data) {
+        // 1. Usage Trend Chart
+        const usageCtx = document.getElementById('usageTrendChart').getContext('2d');
+        if (charts.usageTrend) charts.usageTrend.destroy();
+        
+        charts.usageTrend = new Chart(usageCtx, {
+            type: 'line',
+            data: {
+                labels: data.meter_trend.map(d => d.date),
+                datasets: [{
+                    label: 'Water Usage (Liters)',
+                    data: data.meter_trend.map(d => d.avg_usage),
+                    borderColor: '#00a8e8',
+                    backgroundColor: 'rgba(0, 168, 232, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { labels: { color: '#fff' } }
+                },
+                scales: {
+                    x: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                    y: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+                }
+            }
+        });
+        
+        // 2. Safety Pie Chart
+        const safetyCtx = document.getElementById('safetyPieChart').getContext('2d');
+        if (charts.safetyPie) charts.safetyPie.destroy();
+        
+        const safeCount = data.safety_distribution.find(d => d.safety_status === 'SAFE')?.count || 0;
+        const unsafeCount = data.safety_distribution.find(d => d.safety_status === 'UNSAFE')?.count || 0;
+        
+        charts.safetyPie = new Chart(safetyCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Safe', 'Unsafe'],
+                datasets: [{
+                    data: [safeCount, unsafeCount],
+                    backgroundColor: ['#00b894', '#d63031']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { labels: { color: '#fff' } }
+                }
+            }
+        });
+        
+        // 3. Quality Trend Chart
+        const qualityCtx = document.getElementById('qualityTrendChart').getContext('2d');
+        if (charts.qualityTrend) charts.qualityTrend.destroy();
+        
+        charts.qualityTrend = new Chart(qualityCtx, {
+            type: 'bar',
+            data: {
+                labels: data.quality_trend.map(d => d.date),
+                datasets: [{
+                    label: 'Safety Score',
+                    data: data.quality_trend.map(d => d.avg_score),
+                    backgroundColor: '#00b894'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { labels: { color: '#fff' } }
+                },
+                scales: {
+                    x: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                    y: { 
+                        ticks: { color: '#fff' }, 
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        min: 0,
+                        max: 100
+                    }
+                }
+            }
+        });
+        
+        // 4. Frequency Chart
+        const frequencyCtx = document.getElementById('frequencyChart').getContext('2d');
+        if (charts.frequency) charts.frequency.destroy();
+        
+        charts.frequency = new Chart(frequencyCtx, {
+            type: 'bar',
+            data: {
+                labels: data.quality_trend.map(d => d.date),
+                datasets: [{
+                    label: 'Quality Tests',
+                    data: data.quality_trend.map(d => d.count),
+                    backgroundColor: '#667eea'
+                }, {
+                    label: 'Meter Readings',
+                    data: data.meter_trend.map(d => d.count),
+                    backgroundColor: '#764ba2'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { labels: { color: '#fff' } }
+                },
+                scales: {
+                    x: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                    y: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+                }
+            }
+        });
+    }
+    
+    // Load analytics on page load
+    loadAnalytics(30);
+</script>
+{% endblock %}

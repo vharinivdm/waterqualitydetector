@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}History - AquaGuard AI{% endblock %}
+{% block page_title %}Reading History{% endblock %}
+
+{% block content %}
+
+<!-- Filter Section -->
+<div class="glass-card mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label">Filter Type</label>
+            <select class="form-select" id="filterType">
+                <option value="all">All Readings</option>
+                <option value="quality">Water Quality Only</option>
+                <option value="meter">Meter Readings Only</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Date From</label>
+            <input type="date" class="form-control" id="dateFrom">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Date To</label>
+            <input type="date" class="form-control" id="dateTo">
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-gradient w-100" onclick="applyFilters()">
+                <i class="bi bi-funnel"></i> Filter
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Export Button -->
+<div class="text-end mb-3">
+    <a href="/api/export_report?type=csv" class="btn btn-outline-light">
+        <i class="bi bi-download"></i> Export Report
+    </a>
+</div>
+
+<!-- Water Quality History -->
+<div class="glass-card mb-4" id="qualityHistorySection">
+    <div class="card-header-custom">
+        <h3><i class="bi bi-droplet-fill"></i> Water Quality History</h3>
+        <span class="badge bg-info">{{ quality_history|length }} Records</span>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-dark">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Date & Time</th>
+                    <th>Status</th>
+                    <th>Safety Score</th>
+                    <th>Alert Level</th>
+                    <th>Location</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if quality_history %}
+                    {% for reading in quality_history %}
+                    <tr>
+                        <td>{{ reading.id }}</td>
+                        <td>{{ reading.timestamp }}</td>
+                        <td>
+                            {% if reading.safety_status == 'SAFE' %}
+                            <span class="badge badge-success">{{ reading.safety_status }}</span>
+                            {% else %}
+                            <span class="badge badge-danger">{{ reading.safety_status }}</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ reading.safety_score }}/100</strong></td>
+                        <td>
+                            {% if reading.alert_level == 'HIGH' %}
+                            <span class="badge badge-danger">HIGH</span>
+                            {% elif reading.alert_level == 'MEDIUM' %}
+                            <span class="badge badge-warning">MEDIUM</span>
+                            {% else %}
+                            <span class="badge badge-success">NONE</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ reading.location or 'N/A' }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-light" onclick="viewDetails('quality', {{ reading.id }})">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center" style="color: rgba(255,255,255,0.5);">
+                            No water quality readings yet
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Meter Reading History -->
+<div class="glass-card" id="meterHistorySection">
+    <div class="card-header-custom">
+        <h3><i class="bi bi-speedometer"></i> Meter Reading History</h3>
+        <span class="badge bg-info">{{ meter_history|length }} Records</span>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-dark">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Date & Time</th>
+                    <th>Reading</th>
+                    <th>Usage Status</th>
+                    <th>Meter ID</th>
+                    <th>Location</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if meter_history %}
+                    {% for reading in meter_history %}
+                    <tr>
+                        <td>{{ reading.id }}</td>
+                        <td>{{ reading.timestamp }}</td>
+                        <td><strong>{{ reading.reading_value }} L</strong></td>
+                        <td>
+                            {% if reading.is_high_usage %}
+                            <span class="badge badge-warning">High Usage</span>
+                            {% else %}
+                            <span class="badge badge-success">Normal</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ reading.meter_id or 'N/A' }}</td>
+                        <td>{{ reading.location or 'N/A' }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-light" onclick="viewDetails('meter', {{ reading.id }})">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center" style="color: rgba(255,255,255,0.5);">
+                            No meter readings yet
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Summary Statistics -->
+<div class="row g-4 mt-2">
+    <div class="col-md-4">
+        <div class="glass-card text-center">
+            <h5>Total Quality Tests</h5>
+            <div style="font-size: 2.5rem; font-weight: 700; color: #00a8e8;">{{ quality_history|length }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="glass-card text-center">
+            <h5>Total Meter Scans</h5>
+            <div style="font-size: 2.5rem; font-weight: 700; color: #00a8e8;">{{ meter_history|length }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="glass-card text-center">
+            <h5>Combined Records</h5>
+            <div style="font-size: 2.5rem; font-weight: 700; color: #00a8e8;">{{ quality_history|length + meter_history|length }}</div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function applyFilters() {
+        const filterType = document.getElementById('filterType').value;
+        const dateFrom = document.getElementById('dateFrom').value;
+        const dateTo = document.getElementById('dateTo').value;
+        
+        // Show/hide sections based on filter
+        const qualitySection = document.getElementById('qualityHistorySection');
+        const meterSection = document.getElementById('meterHistorySection');
+        
+        if (filterType === 'all') {
+            qualitySection.style.display = 'block';
+            meterSection.style.display = 'block';
+        } else if (filterType === 'quality') {
+            qualitySection.style.display = 'block';
+            meterSection.style.display = 'none';
+        } else if (filterType === 'meter') {
+            qualitySection.style.display = 'none';
+            meterSection.style.display = 'block';
+        }
+        
+        // In a real implementation, you would filter by date range as well
+        if (dateFrom || dateTo) {
+            console.log('Date filtering:', dateFrom, 'to', dateTo);
+            // Implement date filtering logic here
+        }
+    }
+    
+    function viewDetails(type, id) {
+        alert(`View details for ${type} reading #${id}\n\n(Feature to be implemented: Show modal with full reading details)`);
+    }
+</script>
+{% endblock %}

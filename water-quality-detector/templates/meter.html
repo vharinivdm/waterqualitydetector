@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Meter Reading - AquaGuard AI{% endblock %}
+{% block page_title %}Smart Meter Reader{% endblock %}
+
+{% block content %}
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="glass-card">
+            <div class="card-header-custom">
+                <h3><i class="bi bi-camera-fill"></i> Scan Meter</h3>
+            </div>
+            
+            <form id="meterForm">
+                <div class="mb-3">
+                    <label class="form-label">Meter Image</label>
+                    <input type="file" class="form-control" id="fileMeter" accept="image/*" required>
+                    <small style="color: rgba(255,255,255,0.6);">Take a clear photo of your water meter</small>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Meter ID (Optional)</label>
+                    <input type="text" class="form-control" id="meter_id" placeholder="e.g., WM-12345">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Location (Optional)</label>
+                    <input type="text" class="form-control" id="location" placeholder="e.g., Main Building, Ground Floor">
+                </div>
+                
+                <button type="submit" class="btn btn-gradient w-100">
+                    <i class="bi bi-upc-scan"></i> Scan Meter
+                </button>
+            </form>
+            
+            <div id="loadingSection" class="text-center mt-4" style="display: none;">
+                <div class="spinner-border spinner-border-custom" role="status"></div>
+                <p class="mt-3">Reading meter digits...</p>
+            </div>
+        </div>
+        
+        <!-- Tips Card -->
+        <div class="glass-card mt-4">
+            <h5><i class="bi bi-lightbulb-fill"></i> Photo Tips</h5>
+            <ul style="color: rgba(255,255,255,0.7); line-height: 2;">
+                <li>Ensure good lighting</li>
+                <li>Keep meter digits centered</li>
+                <li>Avoid reflections and glare</li>
+                <li>Hold camera steady</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="glass-card" id="resultSection" style="display: none;">
+            <div class="card-header-custom">
+                <h3><i class="bi bi-clipboard-data"></i> Meter Reading</h3>
+                <span id="timestamp" class="badge bg-secondary"></span>
+            </div>
+            
+            <!-- Usage Display -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 15px; text-align: center;">
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6); margin-bottom: 0.5rem;">Current Reading</div>
+                        <div id="usageVal" style="font-size: 2rem; font-weight: 700; color: #00a8e8;">--</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 15px; text-align: center;">
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6); margin-bottom: 0.5rem;">Monthly Limit</div>
+                        <div id="monthlyEst" style="font-size: 1.5rem; font-weight: 600;">--</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Conservation Card -->
+            <div id="conservationCard" class="alert-custom alert-success mb-4">
+                <h5><i class="bi bi-leaf-fill"></i> Conservation Status</h5>
+                <h4 id="insightMsg" class="mt-2 mb-0">--</h4>
+            </div>
+            
+            <!-- Recommendations -->
+            <div style="background: rgba(0,168,232,0.1); border-left: 4px solid #00a8e8; padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem;">
+                <h6><i class="bi bi-lightbulb-fill"></i> Tips</h6>
+                <p id="conservationTip" class="mb-0">--</p>
+            </div>
+            
+            <!-- Usage Comparison -->
+            <div style="background: rgba(255,255,255,0.03); padding: 1.5rem; border-radius: 15px; margin-bottom: 1.5rem;">
+                <h6 class="mb-3">Usage Breakdown</h6>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Your Reading:</span>
+                    <strong id="yourReading">--</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Eco Limit:</span>
+                    <strong>14,500 L</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Status:</span>
+                    <strong id="statusBadge">--</strong>
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="d-grid gap-2">
+                <a href="/analytics" class="btn btn-outline-light">
+                    <i class="bi bi-graph-up"></i> View Analytics
+                </a>
+                <button class="btn btn-outline-light" onclick="resetForm()">
+                    <i class="bi bi-arrow-repeat"></i> Scan Another Meter
+                </button>
+            </div>
+        </div>
+        
+        <!-- Empty State -->
+        <div class="glass-card" id="emptyState">
+            <div class="text-center" style="padding: 3rem 1rem;">
+                <i class="bi bi-speedometer" style="font-size: 5rem; color: rgba(255,255,255,0.3);"></i>
+                <h4 class="mt-3">No Reading Yet</h4>
+                <p style="color: rgba(255,255,255,0.6);">Upload a meter photo to get your water usage reading</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('meterForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const fileInput = document.getElementById('fileMeter');
+        if (!fileInput.files.length) {
+            alert('Please select a meter image');
+            return;
+        }
+        
+        // Show loading
+        document.getElementById('loadingSection').style.display = 'block';
+        document.getElementById('resultSection').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'none';
+        
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('meter_id', document.getElementById('meter_id').value);
+        formData.append('location', document.getElementById('location').value);
+        
+        try {
+            const response = await fetch('/api/read_meter', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.error) {
+                alert('Error: ' + data.error);
+                document.getElementById('loadingSection').style.display = 'none';
+                return;
+            }
+            
+            // Hide loading, show results
+            document.getElementById('loadingSection').style.display = 'none';
+            document.getElementById('resultSection').style.display = 'block';
+            
+            // Update results
+            document.getElementById('usageVal').textContent = data.usage;
+            document.getElementById('monthlyEst').textContent = data.monthly_est.replace('Eco Limit: ', '');
+            document.getElementById('insightMsg').textContent = data.insight.replace(/⚠️|✅/g, '').trim();
+            document.getElementById('conservationTip').textContent = data.conservation;
+            document.getElementById('timestamp').textContent = data.timestamp;
+            document.getElementById('yourReading').textContent = data.usage;
+            
+            // Update conservation card color
+            const conservationCard = document.getElementById('conservationCard');
+            if (data.is_high) {
+                conservationCard.className = 'alert-custom alert-danger mb-4';
+                document.getElementById('statusBadge').innerHTML = '<span class="badge badge-danger">Over Limit</span>';
+            } else {
+                conservationCard.className = 'alert-custom alert-success mb-4';
+                document.getElementById('statusBadge').innerHTML = '<span class="badge badge-success">Within Limit</span>';
+            }
+            
+        } catch (error) {
+            alert('Connection error: ' + error.message);
+            document.getElementById('loadingSection').style.display = 'none';
+        }
+    });
+    
+    function resetForm() {
+        document.getElementById('meterForm').reset();
+        document.getElementById('resultSection').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'block';
+    }
+</script>
+{% endblock %}

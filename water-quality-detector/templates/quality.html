@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Water Quality Detection - AquaGuard AI{% endblock %}
+{% block page_title %}Water Quality Detection{% endblock %}
+
+{% block content %}
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="glass-card">
+            <div class="card-header-custom">
+                <h3><i class="bi bi-camera-fill"></i> Upload Sample</h3>
+            </div>
+            
+            <form id="qualityForm">
+                <div class="mb-3">
+                    <label class="form-label">Water Sample Image</label>
+                    <input type="file" class="form-control" id="fileQuality" accept="image/*" required>
+                    <small style="color: rgba(255,255,255,0.6);">Upload a clear image of your water sample</small>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Location (Optional)</label>
+                    <input type="text" class="form-control" id="location" placeholder="e.g., Kitchen Tap, Well">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Notes (Optional)</label>
+                    <textarea class="form-control" id="notes" rows="3" placeholder="Any observations about the water..."></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-gradient w-100">
+                    <i class="bi bi-lightning-fill"></i> Analyze Sample
+                </button>
+            </form>
+            
+            <div id="loadingSection" class="text-center mt-4" style="display: none;">
+                <div class="spinner-border spinner-border-custom" role="status"></div>
+                <p class="mt-3">Analyzing water sample...</p>
+            </div>
+        </div>
+        
+        <!-- Information Card -->
+        <div class="glass-card mt-4">
+            <h5><i class="bi bi-info-circle-fill"></i> How It Works</h5>
+            <ul style="color: rgba(255,255,255,0.7); line-height: 2;">
+                <li><strong>Color Analysis:</strong> HSV color space analysis</li>
+                <li><strong>Texture Analysis:</strong> Turbidity detection using Laplacian variance</li>
+                <li><strong>AI Classification:</strong> Random Forest ML model</li>
+                <li><strong>Instant Results:</strong> Safety score and recommendations</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="glass-card" id="resultSection" style="display: none;">
+            <div class="card-header-custom">
+                <h3><i class="bi bi-clipboard-data"></i> Analysis Results</h3>
+                <span id="timestamp" class="badge bg-secondary"></span>
+            </div>
+            
+            <!-- Safety Status -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 15px; text-align: center;">
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6); margin-bottom: 0.5rem;">Safety Status</div>
+                        <div id="safetyStatus" style="font-size: 2rem; font-weight: 700;">--</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 15px; text-align: center;">
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6); margin-bottom: 0.5rem;">Safety Score</div>
+                        <div id="safetyScore" style="font-size: 2rem; font-weight: 700;">--</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Alert Card -->
+            <div id="alertCard" class="alert-custom alert-success mb-4">
+                <h5><i class="bi bi-bell-fill"></i> Alert Status</h5>
+                <h4 id="alertMsg" class="mt-2 mb-0">--</h4>
+            </div>
+            
+            <!-- Insights -->
+            <div style="background: rgba(0,168,232,0.1); border-left: 4px solid #00a8e8; padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem;">
+                <h6><i class="bi bi-lightbulb-fill"></i> Recommendations</h6>
+                <p id="insightMsg" class="mb-0">--</p>
+            </div>
+            
+            <!-- Actions -->
+            <div class="d-grid gap-2">
+                <a href="/history" class="btn btn-outline-light">
+                    <i class="bi bi-clock-history"></i> View History
+                </a>
+                <button class="btn btn-outline-light" onclick="resetForm()">
+                    <i class="bi bi-arrow-repeat"></i> Test Another Sample
+                </button>
+            </div>
+        </div>
+        
+        <!-- Empty State -->
+        <div class="glass-card" id="emptyState">
+            <div class="text-center" style="padding: 3rem 1rem;">
+                <i class="bi bi-droplet" style="font-size: 5rem; color: rgba(255,255,255,0.3);"></i>
+                <h4 class="mt-3">No Results Yet</h4>
+                <p style="color: rgba(255,255,255,0.6);">Upload a water sample image to get started with analysis</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('qualityForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const fileInput = document.getElementById('fileQuality');
+        if (!fileInput.files.length) {
+            alert('Please select an image file');
+            return;
+        }
+        
+        // Show loading
+        document.getElementById('loadingSection').style.display = 'block';
+        document.getElementById('resultSection').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'none';
+        
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('location', document.getElementById('location').value);
+        formData.append('notes', document.getElementById('notes').value);
+        
+        try {
+            const response = await fetch('/api/predict_quality', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.error) {
+                alert('Error: ' + data.error);
+                document.getElementById('loadingSection').style.display = 'none';
+                return;
+            }
+            
+            // Hide loading, show results
+            document.getElementById('loadingSection').style.display = 'none';
+            document.getElementById('resultSection').style.display = 'block';
+            
+            // Update results
+            document.getElementById('safetyStatus').textContent = data.safety_status;
+            document.getElementById('safetyScore').textContent = data.safety_score;
+            document.getElementById('alertMsg').textContent = data.alert.replace(/⚠️|✅/g, '').trim();
+            document.getElementById('insightMsg').textContent = data.insight;
+            document.getElementById('timestamp').textContent = data.timestamp;
+            
+            // Update alert card color
+            const alertCard = document.getElementById('alertCard');
+            if (data.safety_status === 'UNSAFE') {
+                alertCard.className = 'alert-custom alert-danger mb-4';
+            } else {
+                alertCard.className = 'alert-custom alert-success mb-4';
+            }
+            
+            // Update status color
+            const statusDiv = document.getElementById('safetyStatus');
+            if (data.safety_status === 'UNSAFE') {
+                statusDiv.style.color = '#d63031';
+            } else {
+                statusDiv.style.color = '#00b894';
+            }
+            
+        } catch (error) {
+            alert('Connection error: ' + error.message);
+            document.getElementById('loadingSection').style.display = 'none';
+        }
+    });
+    
+    function resetForm() {
+        document.getElementById('qualityForm').reset();
+        document.getElementById('resultSection').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'block';
+    }
+</script>
+{% endblock %}

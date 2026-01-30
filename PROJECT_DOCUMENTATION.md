@@ -29,9 +29,9 @@
 
 ### Installation
 
-1. **Navigate to project directory:**
+1. **Navigate to project directory (whereever you downloaded):**
 ```bash
-cd "/Users/ra001708/Downloads/Water Detection"
+cd "$HOME/waterqualitydetector"
 ```
 
 2. **Install dependencies:**
